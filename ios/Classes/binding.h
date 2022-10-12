@@ -13,6 +13,8 @@ typedef struct FlKv FlKv;
  */
 typedef struct FlKvBatch FlKvBatch;
 
+typedef struct Vec_Row Vec_Row;
+
 /**
  * Array struct
  */
@@ -36,6 +38,8 @@ bool db_put_batch(struct FlKv *flkv, struct FlKvBatch *batch, bool sync);
 struct KvBuffer *db_get(struct FlKv *flkv, struct KvBuffer *key);
 
 bool db_delete(struct FlKv *flkv, struct KvBuffer *key);
+
+struct Vec_Row db_list(struct FlKv *flkv);
 
 bool db_flush(struct FlKv *flkv);
 

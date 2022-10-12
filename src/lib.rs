@@ -1,4 +1,4 @@
-use rusty_leveldb::{Options, WriteBatch, DB};
+use rusty_leveldb::{LdbIterator, Options, WriteBatch, DB};
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_uchar};
 use std::ptr;
@@ -120,6 +120,33 @@ pub struct FlKvBatch {
     wb: WriteBatch,
 }
 
+#[repr(C)]
+pub struct Row {
+    key: KvBuffer,
+    value: KvBuffer,
+}
+
+impl Row {
+    fn from_vec(vec_key: Vec<u8>, vec_val: Vec<u8>) -> Row {
+        let keyBuffer = KvBuffer {
+            data: vec_key.as_ptr() as *const u8,
+            length: vec_key.len(),
+        };
+        std::mem::forget(vec_key);
+
+        let valueBuffer = KvBuffer {
+            data: vec_val.as_ptr() as *const u8,
+            length: vec_val.len(),
+        };
+        std::mem::forget(vec_val);
+        let row = Row {
+            key: keyBuffer,
+            value: valueBuffer,
+        };
+        row
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn db_open(name: *const c_char, memory: bool) -> *mut FlKv {
     let name = cstr!(name);
@@ -214,6 +241,20 @@ pub extern "C" fn db_delete(flkv: *mut FlKv, key: *mut KvBuffer) -> bool {
             false
         }
     }
+}
+
+#[no_mangle]
+pub extern "C" fn db_list(flkv: *mut FlKv) -> Vec<Row> {
+    let mut records: Vec<Row> = Vec::new();
+    let db = db!(flkv, records);
+    let mut it = db.new_iter().unwrap();
+    while it.advance() {
+        let (mut k, mut v) = (vec![], vec![]);
+        it.current(&mut k, &mut v);
+        let record = Row::from_vec(k, v);
+        records.push(record);
+    }
+    return records;
 }
 
 #[no_mangle]
