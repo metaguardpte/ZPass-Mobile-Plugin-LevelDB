@@ -135,6 +135,36 @@ class NativeFlKvDB {
   late final _dart_db_delete _db_delete =
       _db_delete_ptr.asFunction<_dart_db_delete>();
 
+  int db_list(
+    ffi.Pointer<FlKv> flkv,
+    ffi.Pointer<ffi.Pointer<Row>> buffer,
+    ffi.Pointer<ffi.Uint64> size,
+  ) {
+    return _db_list(
+      flkv,
+      buffer,
+      size,
+    );
+  }
+
+  late final _db_list_ptr = _lookup<ffi.NativeFunction<_c_db_list>>('db_list');
+  late final _dart_db_list _db_list = _db_list_ptr.asFunction<_dart_db_list>();
+
+  void release_list(
+    ffi.Pointer<Row> buffer,
+    int size,
+  ) {
+    return _release_list(
+      buffer,
+      size,
+    );
+  }
+
+  late final _release_list_ptr =
+      _lookup<ffi.NativeFunction<_c_release_list>>('release_list');
+  late final _dart_release_list _release_list =
+      _release_list_ptr.asFunction<_dart_release_list>();
+
   bool db_flush(
     ffi.Pointer<FlKv> flkv,
   ) {
@@ -149,12 +179,13 @@ class NativeFlKvDB {
   late final _dart_db_flush _db_flush =
       _db_flush_ptr.asFunction<_dart_db_flush>();
 
-  void db_close(
+  bool db_close(
     ffi.Pointer<FlKv> flkv,
   ) {
     return _db_close(
-      flkv,
-    );
+          flkv,
+        ) !=
+        0;
   }
 
   late final _db_close_ptr =
@@ -173,6 +204,12 @@ class KvBuffer extends ffi.Struct {
 
   @ffi.Uint64()
   external int length;
+}
+
+class Row extends ffi.Struct {
+  external KvBuffer key;
+
+  external KvBuffer value;
 }
 
 typedef _c_db_open = ffi.Pointer<FlKv> Function(
@@ -253,6 +290,28 @@ typedef _dart_db_delete = int Function(
   ffi.Pointer<KvBuffer> key,
 );
 
+typedef _c_db_list = ffi.Int32 Function(
+  ffi.Pointer<FlKv> flkv,
+  ffi.Pointer<ffi.Pointer<Row>> buffer,
+  ffi.Pointer<ffi.Uint64> size,
+);
+
+typedef _dart_db_list = int Function(
+  ffi.Pointer<FlKv> flkv,
+  ffi.Pointer<ffi.Pointer<Row>> buffer,
+  ffi.Pointer<ffi.Uint64> size,
+);
+
+typedef _c_release_list = ffi.Void Function(
+  ffi.Pointer<Row> buffer,
+  ffi.Uint64 size,
+);
+
+typedef _dart_release_list = void Function(
+  ffi.Pointer<Row> buffer,
+  int size,
+);
+
 typedef _c_db_flush = ffi.Uint8 Function(
   ffi.Pointer<FlKv> flkv,
 );
@@ -261,10 +320,10 @@ typedef _dart_db_flush = int Function(
   ffi.Pointer<FlKv> flkv,
 );
 
-typedef _c_db_close = ffi.Void Function(
+typedef _c_db_close = ffi.Uint8 Function(
   ffi.Pointer<FlKv> flkv,
 );
 
-typedef _dart_db_close = void Function(
+typedef _dart_db_close = int Function(
   ffi.Pointer<FlKv> flkv,
 );

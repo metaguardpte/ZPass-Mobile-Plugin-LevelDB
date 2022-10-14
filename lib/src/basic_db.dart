@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 import 'native.dart';
+import 'dart:convert';
 
 ///
 /// Created by iceKylin on 2021/5/13
@@ -15,8 +16,14 @@ DynamicLibrary _loadLibrary() {
 
 class KvNullPointerError extends Error {
   final String? message;
-
   KvNullPointerError(this.message);
+}
+
+class Record {
+  String key;
+  String value;
+
+  Record(this.key, this.value);
 }
 
 /// KvDB keep a pointer of native FlKv
@@ -60,6 +67,37 @@ class KvDB {
     return pointer.ref.data.asTypedList(pointer.ref.length);
   }
 
+  List<Record> list() {
+    List<Record> records = <Record>[];
+    Pointer<Pointer<Row>> buffer = calloc.call();
+    Pointer<Uint64> sizeBuffer = calloc.call();
+    _native.db_list(_flKv, buffer, sizeBuffer);
+    var size = sizeBuffer.value;
+    Pointer<Row> pointer = buffer.value;
+    for (var index = 0; index < size; index++) {
+      var row = pointer.elementAt(index);
+      Uint8List keyUint8list = row.ref.key.data.asTypedList(row.ref.key.length);
+      Uint8List valueUint8list = row.ref.value.data.asTypedList(row.ref.value.length);
+      var key = utf8.decode(keyUint8list);
+      var value = utf8.decode(valueUint8list);
+      var record = Record(key, value);
+      records.add(record);
+    }
+
+    //release
+    if (size > 0) {
+      print("release list");
+      _native.release_list(pointer, size);
+    }
+
+    print("size: " + records.length.toString());
+    return records;
+  }
+
+  void releaselist(Pointer<Row> buffer, int size) {
+    _native.release_list(buffer, size);
+  }
+
   /// Delete by [key]
   delete(Uint8List key) => _native.db_delete(_flKv, _allocateKvBuffer(key));
 
@@ -91,8 +129,11 @@ class KvBatch {
   }
 
   /// Put kv into the batch
-  bool putKv(Uint8List key, Uint8List value) =>
-      _native.batch_add_kv(_batch, _allocateKvBuffer(key), _allocateKvBuffer(value));
+  bool putKv(Uint8List key, Uint8List value) {
+    Pointer<KvBuffer> keybuffer = _allocateKvBuffer(key);
+    Pointer<KvBuffer> valuebuffer = _allocateKvBuffer(value);
+    return _native.batch_add_kv(_batch, keybuffer, valuebuffer);
+  }
 
   /// Clear the batch
   bool clear() => _native.batch_clear(_batch);
@@ -104,7 +145,7 @@ Pointer<KvBuffer> _allocateKvBuffer(Uint8List data) {
   for (var i = 0, len = data.length; i < len; ++i) {
     p[i] = data[i];
   }
-  final dd = calloc.allocate<KvBuffer>(data.length + 4);
+  final dd = calloc.allocate<KvBuffer>(sizeOf<KvBuffer>());
   dd.ref.data = p;
   dd.ref.length = data.length;
   return dd;

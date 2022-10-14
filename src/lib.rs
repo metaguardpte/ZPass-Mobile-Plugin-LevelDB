@@ -128,22 +128,15 @@ pub struct Row {
 
 impl Row {
     fn from_vec(vec_key: Vec<u8>, vec_val: Vec<u8>) -> Row {
-        let keyBuffer = KvBuffer {
-            data: vec_key.as_ptr() as *const u8,
-            length: vec_key.len(),
-        };
-        std::mem::forget(vec_key);
-
-        let valueBuffer = KvBuffer {
-            data: vec_val.as_ptr() as *const u8,
-            length: vec_val.len(),
-        };
-        std::mem::forget(vec_val);
-        let row = Row {
-            key: keyBuffer,
-            value: valueBuffer,
-        };
-        row
+        unsafe {
+            let key_buffer = &*KvBuffer::from_vec(vec_key);
+            let value_buffer = &*KvBuffer::from_vec(vec_val);
+            let row = Row {
+                key: KvBuffer { ..*key_buffer },
+                value: KvBuffer { ..*value_buffer },
+            };
+            row
+        }
     }
 }
 
@@ -153,7 +146,11 @@ pub extern "C" fn db_open(name: *const c_char, memory: bool) -> *mut FlKv {
     match if memory {
         DB::open(name, rusty_leveldb::in_memory())
     } else {
-        DB::open(name, Options::default())
+        let mut opt = Options::default();
+        opt.reuse_logs = false;
+        opt.reuse_manifest = false;
+        opt.compression_type = rusty_leveldb::CompressionType::CompressionSnappy;
+        DB::open(name, opt)
     } {
         Ok(db) => Box::into_raw(Box::new(FlKv { db })),
         Err(e) => {
@@ -174,12 +171,19 @@ pub extern "C" fn db_open(name: *const c_char, memory: bool) -> *mut FlKv {
 
 #[no_mangle]
 pub extern "C" fn db_put(flkv: *mut FlKv, key: *mut KvBuffer, value: *mut KvBuffer) -> bool {
+    if key.is_null() || value.is_null() {
+        return false;
+    }
     let db = db!(flkv);
-    match db.put(buffer!(key), buffer!(value)) {
-        Ok(_) => true,
-        Err(e) => {
-            println!("{:?}", e);
-            false
+    unsafe {
+        let key_buffer = &*key;
+        let key_buffer = std::slice::from_raw_parts(key_buffer.data, key_buffer.length);
+        match db.put(key_buffer, buffer!(value)) {
+            Ok(_) => true,
+            Err(e) => {
+                println!("{:?}", e);
+                false
+            }
         }
     }
 }
@@ -206,6 +210,7 @@ pub extern "C" fn batch_add_kv(
 pub extern "C" fn batch_clear(batch: *mut FlKvBatch) -> bool {
     let wb = wb!(batch);
     wb.clear();
+    unsafe { Box::from_raw(batch) };
     true
 }
 
@@ -244,17 +249,38 @@ pub extern "C" fn db_delete(flkv: *mut FlKv, key: *mut KvBuffer) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn db_list(flkv: *mut FlKv) -> Vec<Row> {
+pub unsafe extern "C" fn db_list(flkv: *mut FlKv, buffer: *mut *mut Row, size: *mut usize) -> i32 {
+    if buffer.is_null() || size.is_null() {
+        return 1;
+    }
     let mut records: Vec<Row> = Vec::new();
-    let db = db!(flkv, records);
-    let mut it = db.new_iter().unwrap();
+    let db = db!(flkv, -1);
+    let mut it = match db.new_iter() {
+        Ok(it) => it,
+        Err(err) => {
+            eprintln!("new iter error: {:?}", err);
+            return 2;
+        }
+    };
     while it.advance() {
         let (mut k, mut v) = (vec![], vec![]);
         it.current(&mut k, &mut v);
         let record = Row::from_vec(k, v);
         records.push(record);
     }
-    return records;
+    records.shrink_to_fit();
+    *size = records.len();
+    let slc = records.into_boxed_slice();
+    *buffer = Box::into_raw(slc) as *mut Row;
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn release_list(buffer: *mut Row, size: usize) {
+    if !buffer.is_null() {
+        let mut slc = std::slice::from_raw_parts_mut(buffer, size);
+        Box::from_raw(slc.as_mut_ptr());
+    }
 }
 
 #[no_mangle]
@@ -270,11 +296,20 @@ pub extern "C" fn db_flush(flkv: *mut FlKv) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn db_close(flkv: *mut FlKv) {
-    if flkv.is_null() {
-        return;
+pub extern "C" fn db_close(flkv: *mut FlKv) -> bool {
+    let db = db!(flkv);
+    match db.close() {
+        Ok(_) => {
+            unsafe {
+                Box::from_raw(flkv);
+            }
+            true
+        }
+        Err(e) => {
+            println!("{:?}", e);
+            false
+        }
     }
-    unsafe { Box::from_raw(flkv) };
 }
 
 #[cfg(test)]

@@ -1,8 +1,6 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:flutter/material.dart';
 import 'package:flkv/flkv.dart';
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(MyApp());
@@ -17,6 +15,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _test();
   }
 
   @override
@@ -30,20 +29,28 @@ class _MyAppState extends State<MyApp> {
           child: Text('Running'),
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            var db = computeTime(() => KvDB.openInMemory(), des: "open db");
-            var key = Uint8List.fromList(utf8.encode("key"));
-            computeTime(() => db.put(key, Uint8List.fromList(utf8.encode("value"))), des: "put kv");
-            var result = computeTime(() => db.get(key).toList(), des: "get value");
-            print(utf8.decode(result));
-            var batch = computeTime(() => KvBatch.create(), des: "create batch");
-            computeTime(() {
-              for (var i = 0; i < 100000; i++) {
-                batch.putKv(Uint8List.fromList(utf8.encode("key$i")), Uint8List.fromList(utf8.encode("value$i")));
-              }
-            }, des: "batch insert 100000");
-            computeTime(() => db.putBatch(batch, false), des: "put batch");
-            db.close();
+          onPressed: () async {
+            var db = ZPass();
+            await db.open();
+            var key = "key_test";
+            var value = "value_test";
+            db.put(key, value);
+            var valueResult = db.get(key);
+            print("value: " + valueResult);
+            var value2 = "value_test2";
+            db.put(key, value2);
+            valueResult = db.get(key);
+            print("value: " + valueResult);
+            var records = db.list();
+            records.forEach((element) {
+              print(element.key + " - " + element.value);
+            });
+            db.delete(key);
+            records = db.list();
+            records.forEach((element) {
+              print(element.key + " - " + element.value);
+            });
+            computeTime(() => db.close(), des: "db close");
           },
           child: Icon(Icons.sync),
         ),
@@ -56,5 +63,10 @@ class _MyAppState extends State<MyApp> {
     var data = func();
     print("$des cost:${DateTime.now().difference(start).inMilliseconds}");
     return data;
+  }
+
+  void _test() async {
+    final tmpDir = await getTemporaryDirectory();
+    print("tempDir root: $tmpDir");
   }
 }

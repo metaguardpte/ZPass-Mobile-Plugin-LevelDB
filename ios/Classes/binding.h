@@ -13,8 +13,6 @@ typedef struct FlKv FlKv;
  */
 typedef struct FlKvBatch FlKvBatch;
 
-typedef struct Vec_Row Vec_Row;
-
 /**
  * Array struct
  */
@@ -22,6 +20,11 @@ typedef struct KvBuffer {
   const unsigned char *data;
   uintptr_t length;
 } KvBuffer;
+
+typedef struct Row {
+  struct KvBuffer key;
+  struct KvBuffer value;
+} Row;
 
 struct FlKv *db_open(const char *name, bool memory);
 
@@ -39,8 +42,10 @@ struct KvBuffer *db_get(struct FlKv *flkv, struct KvBuffer *key);
 
 bool db_delete(struct FlKv *flkv, struct KvBuffer *key);
 
-struct Vec_Row db_list(struct FlKv *flkv);
+int32_t db_list(struct FlKv *flkv, struct Row **buffer, uintptr_t *size);
+
+void release_list(struct Row *buffer, uintptr_t size);
 
 bool db_flush(struct FlKv *flkv);
 
-void db_close(struct FlKv *flkv);
+bool db_close(struct FlKv *flkv);

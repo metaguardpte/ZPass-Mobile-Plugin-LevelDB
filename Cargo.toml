@@ -13,7 +13,7 @@ crate-type = ["cdylib", "staticlib"]
 rusty-leveldb = "1.0.4"
 
 [build-dependencies]
-cbindgen = "0.19.0"
+cbindgen = "0.24.3"
 
 [profile.release]
 opt-level = 'z'
