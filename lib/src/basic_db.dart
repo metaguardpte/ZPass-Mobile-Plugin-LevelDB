@@ -86,11 +86,9 @@ class KvDB {
 
     //release
     if (size > 0) {
-      print("release list");
       _native.release_list(pointer, size);
     }
 
-    print("size: " + records.length.toString());
     return records;
   }
 
