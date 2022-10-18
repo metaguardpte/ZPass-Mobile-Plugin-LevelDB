@@ -53,7 +53,7 @@ class ZPass {
     this.db.close();
   }
 
-  void open() async {
+  Future<void> open() async {
     final applicationDocDir = await getTemporaryDirectory();
     var dbPath = join(applicationDocDir.path, "zpass");
     this.db = KvDB.open(dbPath);
