@@ -16,7 +16,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  ffigen: ^2.4.2
+  ffigen: ^7.1.0
 
 ffigen:
   output: 'lib/src/native.dart'
@@ -27,7 +27,7 @@ ffigen:
     include-directives:
       - 'ios/Classes/binding.h'
   llvm-path:
-    - '/usr/local/opt/llvm'
+    - '/usr/local/llvm/llvm15'
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
