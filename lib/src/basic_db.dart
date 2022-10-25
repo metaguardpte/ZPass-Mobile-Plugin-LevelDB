@@ -51,6 +51,11 @@ class KvDB {
     return KvDB._("inmemory", pointer);
   }
 
+  Uint8List _bufferToUint8List(KvBuffer buffer) {
+    final value = buffer.data.cast<Utf8>().toDartString(length: buffer.length);
+    return Uint8List.fromList(utf8.encode(value));
+  }
+
   /// Put [key] with data [value] into the db
   bool put(Uint8List key, Uint8List value) => _native.db_put(_flKv, _allocateKvBuffer(key), _allocateKvBuffer(value));
 
@@ -64,20 +69,20 @@ class KvDB {
   Uint8List? get(Uint8List key) {
     var pointer = _native.db_get(_flKv, _allocateKvBuffer(key));
     if (pointer == nullptr) return null;
-    return pointer.ref.data.asTypedList(pointer.ref.length);
+    return _bufferToUint8List(pointer.ref);
   }
 
   List<Record> list() {
     List<Record> records = <Record>[];
     Pointer<Pointer<Row>> buffer = calloc.call();
-    Pointer<Uint64> sizeBuffer = calloc.call();
+    Pointer<UnsignedLong> sizeBuffer = calloc.call();
     _native.db_list(_flKv, buffer, sizeBuffer);
     var size = sizeBuffer.value;
     Pointer<Row> pointer = buffer.value;
     for (var index = 0; index < size; index++) {
       var row = pointer.elementAt(index);
-      Uint8List keyUint8list = row.ref.key.data.asTypedList(row.ref.key.length);
-      Uint8List valueUint8list = row.ref.value.data.asTypedList(row.ref.value.length);
+      Uint8List keyUint8list = _bufferToUint8List(row.ref.key);
+      Uint8List valueUint8list = _bufferToUint8List(row.ref.value);
       var key = utf8.decode(keyUint8list);
       var value = utf8.decode(valueUint8list);
       var record = Record(key, value);
@@ -139,7 +144,7 @@ class KvBatch {
 
 /// Create a pointer of [KvBuffer]
 Pointer<KvBuffer> _allocateKvBuffer(Uint8List data) {
-  Pointer<Uint8> p = calloc.allocate(data.length);
+  Pointer<UnsignedChar> p = calloc.allocate(data.length);
   for (var i = 0, len = data.length; i < len; ++i) {
     p[i] = data[i];
   }

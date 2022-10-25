@@ -36,11 +36,11 @@ class _MyAppState extends State<MyApp> {
             var value = "value_test";
             db.put(key, value);
             var valueResult = db.get(key);
-            print("value: " + valueResult);
+            print("value: $valueResult");
             var value2 = "value_test2";
-            db.put(key, value2);
+            db.put("${key}2", value2);
             valueResult = db.get(key);
-            print("value: " + valueResult);
+            print("value: $valueResult");
             var records = db.list();
             records.forEach((element) {
               print(element.key + " - " + element.value);
