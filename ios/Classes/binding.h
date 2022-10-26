@@ -1,51 +1,53 @@
-#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-/**
- * keep db pointer
- */
-typedef struct FlKv FlKv;
+typedef int64_t DartPort;
 
-/**
- * keep writeBatch pointer
- */
-typedef struct FlKvBatch FlKvBatch;
+typedef bool (*DartPostCObjectFnType)(DartPort port_id, void *message);
 
-/**
- * Array struct
- */
-typedef struct KvBuffer {
-  const unsigned char *data;
-  uintptr_t length;
-} KvBuffer;
+typedef struct wire_uint_8_list {
+  uint8_t *ptr;
+  int32_t len;
+} wire_uint_8_list;
 
-typedef struct Row {
-  struct KvBuffer key;
-  struct KvBuffer value;
-} Row;
+typedef struct WireSyncReturnStruct {
+  uint8_t *ptr;
+  int32_t len;
+  bool success;
+} WireSyncReturnStruct;
 
-struct FlKv *db_open(const char *name, bool memory);
+void store_dart_post_cobject(DartPostCObjectFnType ptr);
 
-bool db_put(struct FlKv *flkv, struct KvBuffer *key, struct KvBuffer *value);
+void wire_open(int64_t port_, struct wire_uint_8_list *path, bool in_memory);
 
-struct FlKvBatch *db_create_batch(void);
+void wire_close(int64_t port_, struct wire_uint_8_list *db);
 
-bool batch_add_kv(struct FlKvBatch *batch, struct KvBuffer *key, struct KvBuffer *value);
+void wire_get_rows(int64_t port_, struct wire_uint_8_list *db);
 
-bool batch_clear(struct FlKvBatch *batch);
+void wire_get(int64_t port_, struct wire_uint_8_list *db, struct wire_uint_8_list *key);
 
-bool db_put_batch(struct FlKv *flkv, struct FlKvBatch *batch, bool sync);
+void wire_put(int64_t port_,
+              struct wire_uint_8_list *db,
+              struct wire_uint_8_list *key,
+              struct wire_uint_8_list *value);
 
-struct KvBuffer *db_get(struct FlKv *flkv, struct KvBuffer *key);
+void wire_delete(int64_t port_, struct wire_uint_8_list *db, struct wire_uint_8_list *key);
 
-bool db_delete(struct FlKv *flkv, struct KvBuffer *key);
+struct wire_uint_8_list *new_uint_8_list_0(int32_t len);
 
-int32_t db_list(struct FlKv *flkv, struct Row **buffer, uintptr_t *size);
+void free_WireSyncReturnStruct(struct WireSyncReturnStruct val);
 
-void release_list(struct Row *buffer, uintptr_t size);
-
-bool db_flush(struct FlKv *flkv);
-
-bool db_close(struct FlKv *flkv);
+static int64_t dummy_method_to_enforce_bundling(void) {
+    int64_t dummy_var = 0;
+    dummy_var ^= ((int64_t) (void*) wire_open);
+    dummy_var ^= ((int64_t) (void*) wire_close);
+    dummy_var ^= ((int64_t) (void*) wire_get_rows);
+    dummy_var ^= ((int64_t) (void*) wire_get);
+    dummy_var ^= ((int64_t) (void*) wire_put);
+    dummy_var ^= ((int64_t) (void*) wire_delete);
+    dummy_var ^= ((int64_t) (void*) new_uint_8_list_0);
+    dummy_var ^= ((int64_t) (void*) free_WireSyncReturnStruct);
+    dummy_var ^= ((int64_t) (void*) store_dart_post_cobject);
+    return dummy_var;
+}

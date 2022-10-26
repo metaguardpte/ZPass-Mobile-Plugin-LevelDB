@@ -1,5 +1,7 @@
 import 'package:flkv/flkv.dart';
+import 'package:flkv/ffi.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
 void main() {
@@ -30,27 +32,48 @@ class _MyAppState extends State<MyApp> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            var db = ZPass();
-            await db.open();
-            var key = "key_test";
-            var value = "value_test";
-            db.put(key, value);
-            var valueResult = db.get(key);
-            print("value: $valueResult");
-            var value2 = "value_test2";
-            db.put("${key}2", value2);
-            valueResult = db.get(key);
-            print("value: $valueResult");
-            var records = db.list();
-            records.forEach((element) {
-              print(element.key + " - " + element.value);
+            var dbName = "test";
+            final applicationDocDir = await getTemporaryDirectory();
+            var dbPath = join(applicationDocDir.path, dbName);
+            var levelDB = LevelDB(dbPath);
+            await levelDB.open();
+            print("open db $dbPath");
+
+            var putResult = await levelDB.put("key", "test1111");
+            print("put result: ${putResult}");
+
+
+
+            levelDB.close();
+
+
+            await levelDB.put("key23232", "test2341341");
+            var value = await levelDB.get("key");
+            print("value: $value");
+            var rows = await levelDB.list();
+            rows.forEach((element) {
+              print("row -> ${element.key} - ${element.value}");
             });
-            db.delete(key);
-            records = db.list();
-            records.forEach((element) {
-              print(element.key + " - " + element.value);
+
+            await levelDB.delete("key");
+            print("delete key");
+
+            var newRows = await levelDB.list();
+            newRows.forEach((element) {
+              print("row -> ${element.key} - ${element.value}");
             });
-            computeTime(() => db.close(), des: "db close");
+            levelDB.close();
+            print("close db");
+
+            // final applicationDocDir = await getTemporaryDirectory();
+            // var dbPath = join(applicationDocDir.path, "dbName");
+            // await api.open(path: dbPath, inMemory: false);
+            // print("open db");
+            // await api.put(db: dbPath, key: "tset", value: "cat");
+            // var value = await api.get(db: dbPath, key: "tset");
+            // print("value $value");
+            // await api.close(db: dbPath);
+            // print("close db");
           },
           child: Icon(Icons.sync),
         ),

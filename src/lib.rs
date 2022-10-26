@@ -1,332 +1,147 @@
-use rusty_leveldb::{LdbIterator, Options, WriteBatch, DB};
-use std::ffi::CStr;
-use std::os::raw::{c_char, c_uchar};
-use std::ptr;
+extern crate rusty_leveldb;
 
-/// Creates a [`&str`] from c_string.
-/// - Creates a [`&str`] from c_string
-/// ```
-/// let c_string=CString::new("aaaa").unwrap();
-/// let str = cstr!(c_string.as_ptr());
-/// assert_eq!("aaaa",str);
-/// ```
-/// - Creates a [`&str`] from c_string with default
-/// ```
-/// let str = cstr!(std::ptr::null());
-/// assert_eq!("default",str);
-/// let str_with_default = cstr!(std::ptr::null(),"custom");
-/// assert_eq!("custom",str_with_default);
-/// ```
-///
-macro_rules! cstr {
-    ($ptr:expr) => {
-        cstr!($ptr, "default")
-    };
-    ($ptr:expr,$default:expr) => {
-        if ($ptr as *const c_char).is_null() {
-            $default
-        } else {
-            match unsafe { CStr::from_ptr($ptr as *const c_char).to_str() } {
-                Ok(value) => value,
-                Err(_) => $default,
-            }
-        }
-    };
-}
-/// get [`&[u8]`] from KvBuffer pointer.
-macro_rules! buffer {
-    ($ptr:expr) => {{
-        unsafe {
-            let key = *Box::from_raw($ptr as *mut KvBuffer);
-            std::slice::from_raw_parts(key.data, key.length)
-        }
-    }};
-}
+use rusty_leveldb::{LdbIterator, Options, DB};
 
-/// get [`DB`] from FlKv pointer.
-macro_rules! db {
-    ($ptr:expr) => {{
-        db!($ptr, false)
-    }};
-    ($ptr:expr,$rt:expr) => {{
-        if ($ptr as *mut FlKv).is_null() {
-            return $rt;
-        } else {
-            let kv = unsafe { &mut *$ptr };
-            &mut kv.db
-        }
-    }};
-}
-/// get [`WriteBatch`] from FlKvBatch pointer.
-macro_rules! wbr {
-    ($ptr:expr) => {{
-        wbr!($ptr, false)
-    }};
-    ($ptr:expr,$rt:expr) => {{
-        if ($ptr as *mut FlKvBatch).is_null() {
-            return $rt;
-        } else {
-            let kv = unsafe { Box::from_raw($ptr as *mut FlKvBatch) };
-            kv.wb
-        }
-    }};
-}
-/// get  [`WriteBatch`]  refrence from FlKvBatch pointer.
-macro_rules! wb {
-    ($ptr:expr) => {{
-        wb!($ptr, false)
-    }};
-    ($ptr:expr,$rt:expr) => {{
-        if ($ptr as *mut FlKvBatch).is_null() {
-            return $rt;
-        } else {
-            let kv = unsafe { &mut *$ptr };
-            &mut kv.wb
-        }
-    }};
-}
+use crate::flutter_bridge::{Row, Rows};
+use once_cell::sync::Lazy;
+use std::result::Result::Ok;
+use std::{collections::HashMap, sync::RwLock};
 
-/// Array struct
-#[repr(C)]
-pub struct KvBuffer {
-    data: *const c_uchar,
-    length: usize,
-}
+#[macro_use]
+extern crate log;
 
-impl KvBuffer {
-    fn empty() -> *mut KvBuffer {
-        Box::into_raw(Box::new(KvBuffer {
-            data: Vec::new().as_ptr() as *const u8,
-            length: 0,
-        }))
-    }
-    fn from_vec(vec: Vec<u8>) -> *mut KvBuffer {
-        let data = KvBuffer {
-            data: vec.as_ptr() as *const u8,
-            length: vec.len(),
-        };
-        std::mem::forget(vec);
-        Box::into_raw(Box::new(data))
-    }
-}
-
-/// keep db pointer
-pub struct FlKv {
+pub struct MyDB {
     db: DB,
 }
 
-/// keep writeBatch pointer
-pub struct FlKvBatch {
-    wb: WriteBatch,
+unsafe impl Sync for MyDB {}
+
+pub static cache: Lazy<RwLock<HashMap<String, MyDB>>> = Lazy::new(|| {
+    let mut m: HashMap<String, MyDB> = HashMap::new();
+    RwLock::new(m)
+});
+mod flutter_bridge;
+
+// static mut cache: HashMap<String, DB> = HashMap::from([]);
+
+pub fn open(path: &str) -> DB {
+    let mut opt = Options::default();
+    opt.reuse_logs = false;
+    opt.reuse_manifest = false;
+    opt.compression_type = rusty_leveldb::CompressionType::CompressionSnappy;
+    return DB::open(path, opt).unwrap();
 }
 
-#[repr(C)]
-pub struct Row {
-    key: KvBuffer,
-    value: KvBuffer,
+pub fn open_memory(key: String) -> DB {
+    return DB::open(key, rusty_leveldb::in_memory()).unwrap();
 }
 
-impl Row {
-    fn from_vec(vec_key: Vec<u8>, vec_val: Vec<u8>) -> Row {
-        unsafe {
-            let key_buffer = &*KvBuffer::from_vec(vec_key);
-            let value_buffer = &*KvBuffer::from_vec(vec_val);
-            let row = Row {
-                key: KvBuffer { ..*key_buffer },
-                value: KvBuffer { ..*value_buffer },
-            };
-            row
+pub fn new(path: &str, in_memory: bool) -> String {
+    // unsafe {
+    if in_memory {
+        let key = "in_memory".to_string();
+        let mut db_locker = cache.write().unwrap();
+        if db_locker.contains_key(path.clone()) {
+            return path.to_string();
         }
+        let mut db = open_memory(key.to_string());
+
+        db_locker.insert(key.clone(), MyDB { db });
+        return key.to_string();
     }
+
+    let mut db_locker = cache.write().unwrap();
+    if db_locker.contains_key(path.clone()) {
+        return path.to_string();
+    }
+
+    let db = open(path);
+    db_locker.insert(path.to_string(), MyDB { db });
+    return path.to_string();
 }
 
-#[no_mangle]
-pub extern "C" fn db_open(name: *const c_char, memory: bool) -> *mut FlKv {
-    let name = cstr!(name);
-    match if memory {
-        DB::open(name, rusty_leveldb::in_memory())
-    } else {
-        let mut opt = Options::default();
-        opt.reuse_logs = false;
-        opt.reuse_manifest = false;
-        opt.compression_type = rusty_leveldb::CompressionType::CompressionSnappy;
-        DB::open(name, opt)
-    } {
-        Ok(db) => Box::into_raw(Box::new(FlKv { db })),
-        Err(e) => {
-            println!("{:?}", e);
-            ptr::null_mut()
-        }
-    }
-}
-
-// #[no_mangle]
-// pub extern "C" fn db_check_kv(flkv: *mut FlKv) -> *const c_char {
-//     let db = kv!(flkv);
-//     match &db.error {
-//         Some(e) => FlKvError::from_status(e),
-//         None => FlKvError::empty()
-//     }
-// }
-
-#[no_mangle]
-pub extern "C" fn db_put(flkv: *mut FlKv, key: *mut KvBuffer, value: *mut KvBuffer) -> bool {
-    if key.is_null() || value.is_null() {
-        return false;
-    }
-    let db = db!(flkv);
-    unsafe {
-        let key_buffer = &*key;
-        let key_buffer = std::slice::from_raw_parts(key_buffer.data, key_buffer.length);
-        match db.put(key_buffer, buffer!(value)) {
-            Ok(_) => true,
-            Err(e) => {
-                println!("{:?}", e);
-                false
+pub fn close(key: String) -> bool {
+    // let mut db = get_mut_db_instance(key);
+    let mut locker_res = cache.write();
+    if let Ok(mut locker) = locker_res {
+        let db_option = locker.get_mut(&key);
+        let db = db_option;
+        if db.is_some() {
+            let db = db.unwrap();
+            match db.db.close() {
+                Ok(_) => return true,
+                Err(e) => {
+                    error!("err: {}", e.to_string());
+                    return false;
+                }
             }
         }
     }
+    return false;
 }
 
-#[no_mangle]
-pub extern "C" fn db_create_batch() -> *mut FlKvBatch {
-    Box::into_raw(Box::new(FlKvBatch {
-        wb: WriteBatch::new(),
-    }))
-}
-
-#[no_mangle]
-pub extern "C" fn batch_add_kv(
-    batch: *mut FlKvBatch,
-    key: *mut KvBuffer,
-    value: *mut KvBuffer,
-) -> bool {
-    let wb = wb!(batch);
-    wb.put(buffer!(key), buffer!(value));
-    true
-}
-
-#[no_mangle]
-pub extern "C" fn batch_clear(batch: *mut FlKvBatch) -> bool {
-    let wb = wb!(batch);
-    wb.clear();
-    unsafe { Box::from_raw(batch) };
-    true
-}
-
-#[no_mangle]
-pub extern "C" fn db_put_batch(flkv: *mut FlKv, batch: *mut FlKvBatch, sync: bool) -> bool {
-    let wb = wbr!(batch);
-    let db = db!(flkv);
-    match db.write(wb, sync) {
-        Ok(_) => true,
-        Err(e) => {
-            println!("{:?}", e);
-            false
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn db_get(flkv: *mut FlKv, key: *mut KvBuffer) -> *mut KvBuffer {
-    let db = db!(flkv, ptr::null_mut());
-    match db.get(buffer!(key)) {
-        Some(data) => KvBuffer::from_vec(data),
-        None => KvBuffer::empty(),
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn db_delete(flkv: *mut FlKv, key: *mut KvBuffer) -> bool {
-    let db = db!(flkv);
-    match db.delete(buffer!(key)) {
-        Ok(_) => true,
-        Err(e) => {
-            println!("{:?}", e);
-            false
-        }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn db_list(flkv: *mut FlKv, buffer: *mut *mut Row, size: *mut usize) -> i32 {
-    if buffer.is_null() || size.is_null() {
-        return 1;
-    }
-    let mut records: Vec<Row> = Vec::new();
-    let db = db!(flkv, -1);
-    let mut it = match db.new_iter() {
-        Ok(it) => it,
-        Err(err) => {
-            eprintln!("new iter error: {:?}", err);
-            return 2;
-        }
-    };
-    while it.advance() {
-        let (mut k, mut v) = (vec![], vec![]);
-        it.current(&mut k, &mut v);
-        let record = Row::from_vec(k, v);
-        records.push(record);
-    }
-    records.shrink_to_fit();
-    *size = records.len();
-    let slc = records.into_boxed_slice();
-    *buffer = Box::into_raw(slc) as *mut Row;
-    return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn release_list(buffer: *mut Row, size: usize) {
-    if !buffer.is_null() {
-        let mut slc = std::slice::from_raw_parts_mut(buffer, size);
-        Box::from_raw(slc.as_mut_ptr());
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn db_flush(flkv: *mut FlKv) -> bool {
-    let db = db!(flkv);
-    match db.flush() {
-        Ok(_) => true,
-        Err(e) => {
-            println!("{:?}", e);
-            false
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn db_close(flkv: *mut FlKv) -> bool {
-    let db = db!(flkv);
-    match db.close() {
-        Ok(_) => {
-            unsafe {
-                Box::from_raw(flkv);
+pub fn get(db: String, key: String) -> String {
+    let mut locker_res = cache.write();
+    if let Ok(mut locker) = locker_res {
+        let db_option = locker.get_mut(&db);
+        let db = db_option;
+        if db.is_some() {
+            let db = db.unwrap();
+            let mut value = db.db.get(key.as_bytes());
+            if value.is_some() {
+                return String::from_utf8(value.unwrap()).unwrap();
             }
-            true
-        }
-        Err(e) => {
-            println!("{:?}", e);
-            false
         }
     }
+    return "".to_string();
 }
 
-#[cfg(test)]
-mod tests {
-    use std::ffi::{CStr, CString};
-    use std::os::raw::c_char;
-    use std::ptr;
-
-    /// test macro cstr!
-    #[test]
-    fn test_cstr() {
-        let c_string = CString::new("aaaa").unwrap();
-        let str = cstr!(c_string.as_ptr());
-        assert_eq!("aaaa", str);
-        let str_with_default = cstr!(ptr::null());
-        assert_eq!("default", str_with_default);
-        let str_with_custom = cstr!(ptr::null(), "custom");
-        assert_eq!("custom", str_with_custom);
+pub fn put(db: String, key: String, value: String) -> bool {
+    let mut locker_res = cache.write();
+    if let Ok(mut locker) = locker_res {
+        let db_option = locker.get_mut(&db);
+        let db = db_option;
+        if db.is_some() {
+            let db = db.unwrap();
+            db.db.put(key.as_bytes(), value.as_bytes());
+            return true;
+        }
     }
+    return false;
+}
+
+pub fn delete(db: String, key: String) -> bool {
+    let mut locker_res = cache.write();
+    if let Ok(mut locker) = locker_res {
+        let db_option = locker.get_mut(&db);
+        let db = db_option;
+        if db.is_some() {
+            let db = db.unwrap();
+            db.db.delete(key.as_bytes());
+            return true;
+        }
+    }
+    return false;
+}
+
+pub fn get_rows(db: String) -> Rows {
+    let mut rows = vec![];
+    let mut locker_res = cache.write();
+    if let Ok(mut locker) = locker_res {
+        let db_option = locker.get_mut(&db);
+        let db = db_option;
+        if db.is_some() {
+            let db = db.unwrap();
+            let mut it = db.db.new_iter().unwrap();
+            let (mut k, mut v) = (vec![], vec![]);
+            while it.advance() {
+                it.current(&mut k, &mut v);
+                let key = String::from_utf8(k.clone()).unwrap();
+                let value = String::from_utf8(v.clone()).unwrap();
+                let row = Row { key, value };
+                rows.push(row);
+            }
+        }
+    }
+    Rows { rows }
 }

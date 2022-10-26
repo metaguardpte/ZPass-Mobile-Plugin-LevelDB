@@ -12,22 +12,23 @@ dependencies:
     sdk: flutter
   ffi: ^2.0.1
   path_provider: ^2.0.11
+  flutter_rust_bridge: ^1.49.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  ffigen: ^7.2.0
+  ffigen: ^6.0.1
 
-ffigen:
-  output: 'lib/src/native.dart'
-  name: 'NativeFlKvDB'
-  headers:
-    entry-points:
-      - 'ios/Classes/binding.h'
-    include-directives:
-      - 'ios/Classes/binding.h'
-  llvm-path:
-    - '/usr/local/llvm/llvm15'
+#ffigen:
+#  output: 'lib/src/native.dart'
+#  name: 'NativeFlKvDB'
+#  headers:
+#    entry-points:
+#      - 'ios/Classes/binding.h'
+#    include-directives:
+#      - 'ios/Classes/binding.h'
+#  llvm-path:
+#    - '/usr/local/llvm/llvm15'
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
