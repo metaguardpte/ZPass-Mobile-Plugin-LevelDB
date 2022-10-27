@@ -51,6 +51,10 @@ class LevelDB {
     return records;
   }
 
+  String getPath() {
+    return _dbPath;
+  }
+
   Future<bool> close() async {
     print("close db $_dbPath");
     return api.dbClose(ptr: _dbPtr);
