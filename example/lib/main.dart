@@ -36,9 +36,9 @@ class _MyAppState extends State<MyApp> {
             final applicationDocDir = await getTemporaryDirectory();
             var dbPath = join(applicationDocDir.path, dbName);
             var levelDB = LevelDB(dbPath);
-            print("open db $dbPath");
+            print("open db ${levelDB.getPath()}");
             await levelDB.open();
-            print("open db $dbPath completed");
+            print("open db ${levelDB.getPath()} completed");
 
             var putResult = await levelDB.put("key", "test1111");
             print("put result: ${putResult}");
