@@ -2,38 +2,38 @@ use super::*;
 // Section: wire functions
 
 #[no_mangle]
-pub extern "C" fn wire_open(port_: i64, path: *mut wire_uint_8_list, in_memory: bool) {
-    wire_open_impl(port_, path, in_memory)
+pub extern "C" fn wire_db_new(port_: i64, path: *mut wire_uint_8_list) {
+    wire_db_new_impl(port_, path)
 }
 
 #[no_mangle]
-pub extern "C" fn wire_close(port_: i64, db: *mut wire_uint_8_list) {
-    wire_close_impl(port_, db)
+pub extern "C" fn wire_db_get(port_: i64, ptr: u64, key: *mut wire_uint_8_list) {
+    wire_db_get_impl(port_, ptr, key)
 }
 
 #[no_mangle]
-pub extern "C" fn wire_get_rows(port_: i64, db: *mut wire_uint_8_list) {
-    wire_get_rows_impl(port_, db)
-}
-
-#[no_mangle]
-pub extern "C" fn wire_get(port_: i64, db: *mut wire_uint_8_list, key: *mut wire_uint_8_list) {
-    wire_get_impl(port_, db, key)
-}
-
-#[no_mangle]
-pub extern "C" fn wire_put(
+pub extern "C" fn wire_db_put(
     port_: i64,
-    db: *mut wire_uint_8_list,
+    ptr: u64,
     key: *mut wire_uint_8_list,
     value: *mut wire_uint_8_list,
 ) {
-    wire_put_impl(port_, db, key, value)
+    wire_db_put_impl(port_, ptr, key, value)
 }
 
 #[no_mangle]
-pub extern "C" fn wire_delete(port_: i64, db: *mut wire_uint_8_list, key: *mut wire_uint_8_list) {
-    wire_delete_impl(port_, db, key)
+pub extern "C" fn wire_db_close(port_: i64, ptr: u64) {
+    wire_db_close_impl(port_, ptr)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_db_get_rows(port_: i64, ptr: u64) {
+    wire_db_get_rows_impl(port_, ptr)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_db_delete(port_: i64, ptr: u64, key: *mut wire_uint_8_list) {
+    wire_db_delete_impl(port_, ptr, key)
 }
 
 // Section: allocate functions

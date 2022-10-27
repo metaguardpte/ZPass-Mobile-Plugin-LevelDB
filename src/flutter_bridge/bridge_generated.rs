@@ -19,103 +19,98 @@ use flutter_rust_bridge::*;
 
 // Section: wire functions
 
-fn wire_open_impl(
-    port_: MessagePort,
-    path: impl Wire2Api<String> + UnwindSafe,
-    in_memory: impl Wire2Api<bool> + UnwindSafe,
-) {
+fn wire_db_new_impl(port_: MessagePort, path: impl Wire2Api<String> + UnwindSafe) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {
-            debug_name: "open",
+            debug_name: "db_new",
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
         move || {
             let api_path = path.wire2api();
-            let api_in_memory = in_memory.wire2api();
-            move |task_callback| Ok(open(api_path, api_in_memory))
+            move |task_callback| Ok(db_new(api_path))
         },
     )
 }
-fn wire_close_impl(port_: MessagePort, db: impl Wire2Api<String> + UnwindSafe) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
-        WrapInfo {
-            debug_name: "close",
-            port: Some(port_),
-            mode: FfiCallMode::Normal,
-        },
-        move || {
-            let api_db = db.wire2api();
-            move |task_callback| Ok(close(api_db))
-        },
-    )
-}
-fn wire_get_rows_impl(port_: MessagePort, db: impl Wire2Api<String> + UnwindSafe) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
-        WrapInfo {
-            debug_name: "get_rows",
-            port: Some(port_),
-            mode: FfiCallMode::Normal,
-        },
-        move || {
-            let api_db = db.wire2api();
-            move |task_callback| Ok(get_rows(api_db))
-        },
-    )
-}
-fn wire_get_impl(
+fn wire_db_get_impl(
     port_: MessagePort,
-    db: impl Wire2Api<String> + UnwindSafe,
+    ptr: impl Wire2Api<u64> + UnwindSafe,
     key: impl Wire2Api<String> + UnwindSafe,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {
-            debug_name: "get",
+            debug_name: "db_get",
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
         move || {
-            let api_db = db.wire2api();
+            let api_ptr = ptr.wire2api();
             let api_key = key.wire2api();
-            move |task_callback| Ok(get(api_db, api_key))
+            move |task_callback| Ok(db_get(api_ptr, api_key))
         },
     )
 }
-fn wire_put_impl(
+fn wire_db_put_impl(
     port_: MessagePort,
-    db: impl Wire2Api<String> + UnwindSafe,
+    ptr: impl Wire2Api<u64> + UnwindSafe,
     key: impl Wire2Api<String> + UnwindSafe,
     value: impl Wire2Api<String> + UnwindSafe,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {
-            debug_name: "put",
+            debug_name: "db_put",
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
         move || {
-            let api_db = db.wire2api();
+            let api_ptr = ptr.wire2api();
             let api_key = key.wire2api();
             let api_value = value.wire2api();
-            move |task_callback| Ok(put(api_db, api_key, api_value))
+            move |task_callback| Ok(db_put(api_ptr, api_key, api_value))
         },
     )
 }
-fn wire_delete_impl(
+fn wire_db_close_impl(port_: MessagePort, ptr: impl Wire2Api<u64> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "db_close",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_ptr = ptr.wire2api();
+            move |task_callback| Ok(db_close(api_ptr))
+        },
+    )
+}
+fn wire_db_get_rows_impl(port_: MessagePort, ptr: impl Wire2Api<u64> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "db_get_rows",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_ptr = ptr.wire2api();
+            move |task_callback| Ok(db_get_rows(api_ptr))
+        },
+    )
+}
+fn wire_db_delete_impl(
     port_: MessagePort,
-    db: impl Wire2Api<String> + UnwindSafe,
+    ptr: impl Wire2Api<u64> + UnwindSafe,
     key: impl Wire2Api<String> + UnwindSafe,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {
-            debug_name: "delete",
+            debug_name: "db_delete",
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
         move || {
-            let api_db = db.wire2api();
+            let api_ptr = ptr.wire2api();
             let api_key = key.wire2api();
-            move |task_callback| Ok(delete(api_db, api_key))
+            move |task_callback| Ok(db_delete(api_ptr, api_key))
         },
     )
 }
@@ -140,8 +135,8 @@ where
     }
 }
 
-impl Wire2Api<bool> for bool {
-    fn wire2api(self) -> bool {
+impl Wire2Api<u64> for u64 {
+    fn wire2api(self) -> u64 {
         self
     }
 }

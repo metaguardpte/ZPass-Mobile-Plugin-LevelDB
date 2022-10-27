@@ -8,6 +8,7 @@ import 'package:flkv/flkv.dart';
 
 class LevelDB {
   String _dbPath;
+  late int _dbPtr;
   bool inMemory;
 
   LevelDB(this._dbPath, {this.inMemory = false});
@@ -21,7 +22,7 @@ class LevelDB {
       return false;
     }
 
-    var result = await api.put(db: _dbPath, key: key, value: value);
+    var result = await api.dbPut(ptr: _dbPtr, key: key, value: value);
     return result;
   }
 
@@ -29,7 +30,7 @@ class LevelDB {
     if (key == null || key.isEmpty) {
       return null;
     }
-    var result = await api.get(db: _dbPath, key: key);
+    var result = await api.dbGet(ptr: _dbPtr, key: key);
     return result;
   }
 
@@ -37,11 +38,11 @@ class LevelDB {
     if (key == null || key.isEmpty) {
       return false;
     }
-    return api.delete(db: _dbPath, key: key);
+    return api.dbDelete(ptr: _dbPtr, key: key);
   }
 
   Future<List<Record>> list() async {
-    var result = await api.getRows(db: _dbPath);
+    var result = await api.dbGetRows(ptr: _dbPtr);
     var records = <Record>[];
     for (var r in result.rows) {
       var record = Record(r.key, r.value);
@@ -50,13 +51,14 @@ class LevelDB {
     return records;
   }
 
-  void close() async {
+  Future<bool> close() async {
     print("close db $_dbPath");
-    await api.close(db: _dbPath);
+    return api.dbClose(ptr: _dbPtr);
   }
 
-  Future<void> open() async {
-    await api.open(path: _dbPath, inMemory: inMemory);
+  Future<int> open() async {
+    _dbPtr = await api.dbNew(path: _dbPath);
+    return _dbPtr;
   }
 }
 

@@ -36,18 +36,15 @@ class _MyAppState extends State<MyApp> {
             final applicationDocDir = await getTemporaryDirectory();
             var dbPath = join(applicationDocDir.path, dbName);
             var levelDB = LevelDB(dbPath);
-            await levelDB.open();
             print("open db $dbPath");
+            await levelDB.open();
+            print("open db $dbPath completed");
 
             var putResult = await levelDB.put("key", "test1111");
             print("put result: ${putResult}");
 
-
-
-            levelDB.close();
-
-
             await levelDB.put("key23232", "test2341341");
+
             var value = await levelDB.get("key");
             print("value: $value");
             var rows = await levelDB.list();
@@ -62,18 +59,9 @@ class _MyAppState extends State<MyApp> {
             newRows.forEach((element) {
               print("row -> ${element.key} - ${element.value}");
             });
-            levelDB.close();
-            print("close db");
 
-            // final applicationDocDir = await getTemporaryDirectory();
-            // var dbPath = join(applicationDocDir.path, "dbName");
-            // await api.open(path: dbPath, inMemory: false);
-            // print("open db");
-            // await api.put(db: dbPath, key: "tset", value: "cat");
-            // var value = await api.get(db: dbPath, key: "tset");
-            // print("value $value");
-            // await api.close(db: dbPath);
-            // print("close db");
+            var closeResult = await levelDB.close();
+            print("close result: $closeResult");
           },
           child: Icon(Icons.sync),
         ),

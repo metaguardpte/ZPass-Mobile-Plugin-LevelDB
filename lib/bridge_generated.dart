@@ -22,109 +22,109 @@ class FlkvImpl implements Flkv {
   factory FlkvImpl.wasm(FutureOr<WasmModule> module) =>
       FlkvImpl(module as ExternalLibrary);
   FlkvImpl.raw(this._platform);
-  Future<String> open(
-          {required String path, required bool inMemory, dynamic hint}) =>
-      _platform.executeNormal(FlutterRustBridgeTask(
-        callFfi: (port_) => _platform.inner
-            .wire_open(port_, _platform.api2wire_String(path), inMemory),
-        parseSuccessData: _wire2api_String,
-        constMeta: kOpenConstMeta,
-        argValues: [path, inMemory],
-        hint: hint,
-      ));
-
-  FlutterRustBridgeTaskConstMeta get kOpenConstMeta =>
-      const FlutterRustBridgeTaskConstMeta(
-        debugName: "open",
-        argNames: ["path", "inMemory"],
-      );
-
-  Future<bool> close({required String db, dynamic hint}) =>
+  Future<int> dbNew({required String path, dynamic hint}) =>
       _platform.executeNormal(FlutterRustBridgeTask(
         callFfi: (port_) =>
-            _platform.inner.wire_close(port_, _platform.api2wire_String(db)),
-        parseSuccessData: _wire2api_bool,
-        constMeta: kCloseConstMeta,
-        argValues: [db],
+            _platform.inner.wire_db_new(port_, _platform.api2wire_String(path)),
+        parseSuccessData: _wire2api_u64,
+        constMeta: kDbNewConstMeta,
+        argValues: [path],
         hint: hint,
       ));
 
-  FlutterRustBridgeTaskConstMeta get kCloseConstMeta =>
+  FlutterRustBridgeTaskConstMeta get kDbNewConstMeta =>
       const FlutterRustBridgeTaskConstMeta(
-        debugName: "close",
-        argNames: ["db"],
+        debugName: "db_new",
+        argNames: ["path"],
       );
 
-  Future<Rows> getRows({required String db, dynamic hint}) =>
+  Future<String?> dbGet(
+          {required int ptr, required String key, dynamic hint}) =>
       _platform.executeNormal(FlutterRustBridgeTask(
-        callFfi: (port_) =>
-            _platform.inner.wire_get_rows(port_, _platform.api2wire_String(db)),
-        parseSuccessData: _wire2api_rows,
-        constMeta: kGetRowsConstMeta,
-        argValues: [db],
+        callFfi: (port_) => _platform.inner.wire_db_get(
+            port_, _platform.api2wire_u64(ptr), _platform.api2wire_String(key)),
+        parseSuccessData: _wire2api_opt_String,
+        constMeta: kDbGetConstMeta,
+        argValues: [ptr, key],
         hint: hint,
       ));
 
-  FlutterRustBridgeTaskConstMeta get kGetRowsConstMeta =>
+  FlutterRustBridgeTaskConstMeta get kDbGetConstMeta =>
       const FlutterRustBridgeTaskConstMeta(
-        debugName: "get_rows",
-        argNames: ["db"],
+        debugName: "db_get",
+        argNames: ["ptr", "key"],
       );
 
-  Future<String> get({required String db, required String key, dynamic hint}) =>
-      _platform.executeNormal(FlutterRustBridgeTask(
-        callFfi: (port_) => _platform.inner.wire_get(port_,
-            _platform.api2wire_String(db), _platform.api2wire_String(key)),
-        parseSuccessData: _wire2api_String,
-        constMeta: kGetConstMeta,
-        argValues: [db, key],
-        hint: hint,
-      ));
-
-  FlutterRustBridgeTaskConstMeta get kGetConstMeta =>
-      const FlutterRustBridgeTaskConstMeta(
-        debugName: "get",
-        argNames: ["db", "key"],
-      );
-
-  Future<bool> put(
-          {required String db,
+  Future<bool> dbPut(
+          {required int ptr,
           required String key,
           required String value,
           dynamic hint}) =>
       _platform.executeNormal(FlutterRustBridgeTask(
-        callFfi: (port_) => _platform.inner.wire_put(
+        callFfi: (port_) => _platform.inner.wire_db_put(
             port_,
-            _platform.api2wire_String(db),
+            _platform.api2wire_u64(ptr),
             _platform.api2wire_String(key),
             _platform.api2wire_String(value)),
         parseSuccessData: _wire2api_bool,
-        constMeta: kPutConstMeta,
-        argValues: [db, key, value],
+        constMeta: kDbPutConstMeta,
+        argValues: [ptr, key, value],
         hint: hint,
       ));
 
-  FlutterRustBridgeTaskConstMeta get kPutConstMeta =>
+  FlutterRustBridgeTaskConstMeta get kDbPutConstMeta =>
       const FlutterRustBridgeTaskConstMeta(
-        debugName: "put",
-        argNames: ["db", "key", "value"],
+        debugName: "db_put",
+        argNames: ["ptr", "key", "value"],
       );
 
-  Future<bool> delete(
-          {required String db, required String key, dynamic hint}) =>
+  Future<bool> dbClose({required int ptr, dynamic hint}) =>
       _platform.executeNormal(FlutterRustBridgeTask(
-        callFfi: (port_) => _platform.inner.wire_delete(port_,
-            _platform.api2wire_String(db), _platform.api2wire_String(key)),
+        callFfi: (port_) =>
+            _platform.inner.wire_db_close(port_, _platform.api2wire_u64(ptr)),
         parseSuccessData: _wire2api_bool,
-        constMeta: kDeleteConstMeta,
-        argValues: [db, key],
+        constMeta: kDbCloseConstMeta,
+        argValues: [ptr],
         hint: hint,
       ));
 
-  FlutterRustBridgeTaskConstMeta get kDeleteConstMeta =>
+  FlutterRustBridgeTaskConstMeta get kDbCloseConstMeta =>
       const FlutterRustBridgeTaskConstMeta(
-        debugName: "delete",
-        argNames: ["db", "key"],
+        debugName: "db_close",
+        argNames: ["ptr"],
+      );
+
+  Future<Rows> dbGetRows({required int ptr, dynamic hint}) =>
+      _platform.executeNormal(FlutterRustBridgeTask(
+        callFfi: (port_) => _platform.inner
+            .wire_db_get_rows(port_, _platform.api2wire_u64(ptr)),
+        parseSuccessData: _wire2api_rows,
+        constMeta: kDbGetRowsConstMeta,
+        argValues: [ptr],
+        hint: hint,
+      ));
+
+  FlutterRustBridgeTaskConstMeta get kDbGetRowsConstMeta =>
+      const FlutterRustBridgeTaskConstMeta(
+        debugName: "db_get_rows",
+        argNames: ["ptr"],
+      );
+
+  Future<bool> dbDelete(
+          {required int ptr, required String key, dynamic hint}) =>
+      _platform.executeNormal(FlutterRustBridgeTask(
+        callFfi: (port_) => _platform.inner.wire_db_delete(
+            port_, _platform.api2wire_u64(ptr), _platform.api2wire_String(key)),
+        parseSuccessData: _wire2api_bool,
+        constMeta: kDbDeleteConstMeta,
+        argValues: [ptr, key],
+        hint: hint,
+      ));
+
+  FlutterRustBridgeTaskConstMeta get kDbDeleteConstMeta =>
+      const FlutterRustBridgeTaskConstMeta(
+        debugName: "db_delete",
+        argNames: ["ptr", "key"],
       );
 
 // Section: wire2api
@@ -139,6 +139,10 @@ class FlkvImpl implements Flkv {
 
   List<Row> _wire2api_list_row(dynamic raw) {
     return (raw as List<dynamic>).map(_wire2api_row).toList();
+  }
+
+  String? _wire2api_opt_String(dynamic raw) {
+    return raw == null ? null : _wire2api_String(raw);
   }
 
   Row _wire2api_row(dynamic raw) {
@@ -160,6 +164,10 @@ class FlkvImpl implements Flkv {
     );
   }
 
+  int _wire2api_u64(dynamic raw) {
+    return castInt(raw);
+  }
+
   int _wire2api_u8(dynamic raw) {
     return raw as int;
   }
@@ -170,11 +178,6 @@ class FlkvImpl implements Flkv {
 }
 
 // Section: api2wire
-
-@protected
-bool api2wire_bool(bool raw) {
-  return raw;
-}
 
 @protected
 int api2wire_u8(int raw) {
@@ -188,6 +191,11 @@ class FlkvPlatform extends FlutterRustBridgeBase<FlkvWire> {
   @protected
   ffi.Pointer<wire_uint_8_list> api2wire_String(String raw) {
     return api2wire_uint_8_list(utf8.encoder.convert(raw));
+  }
+
+  @protected
+  int api2wire_u64(int raw) {
+    return raw;
   }
 
   @protected
@@ -235,123 +243,117 @@ class FlkvWire implements FlutterRustBridgeWireBase {
   late final _store_dart_post_cobject = _store_dart_post_cobjectPtr
       .asFunction<void Function(DartPostCObjectFnType)>();
 
-  void wire_open(
+  void wire_db_new(
     int port_,
     ffi.Pointer<wire_uint_8_list> path,
-    bool in_memory,
   ) {
-    return _wire_open(
+    return _wire_db_new(
       port_,
       path,
-      in_memory,
     );
   }
 
-  late final _wire_openPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>,
-              ffi.Bool)>>('wire_open');
-  late final _wire_open = _wire_openPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>, bool)>();
-
-  void wire_close(
-    int port_,
-    ffi.Pointer<wire_uint_8_list> db,
-  ) {
-    return _wire_close(
-      port_,
-      db,
-    );
-  }
-
-  late final _wire_closePtr = _lookup<
+  late final _wire_db_newPtr = _lookup<
       ffi.NativeFunction<
           ffi.Void Function(
-              ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_close');
-  late final _wire_close = _wire_closePtr
+              ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_db_new');
+  late final _wire_db_new = _wire_db_newPtr
       .asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
-  void wire_get_rows(
+  void wire_db_get(
     int port_,
-    ffi.Pointer<wire_uint_8_list> db,
-  ) {
-    return _wire_get_rows(
-      port_,
-      db,
-    );
-  }
-
-  late final _wire_get_rowsPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(
-              ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_get_rows');
-  late final _wire_get_rows = _wire_get_rowsPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
-
-  void wire_get(
-    int port_,
-    ffi.Pointer<wire_uint_8_list> db,
+    int ptr,
     ffi.Pointer<wire_uint_8_list> key,
   ) {
-    return _wire_get(
+    return _wire_db_get(
       port_,
-      db,
+      ptr,
       key,
     );
   }
 
-  late final _wire_getPtr = _lookup<
+  late final _wire_db_getPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>,
-              ffi.Pointer<wire_uint_8_list>)>>('wire_get');
-  late final _wire_get = _wire_getPtr.asFunction<
-      void Function(
-          int, ffi.Pointer<wire_uint_8_list>, ffi.Pointer<wire_uint_8_list>)>();
+          ffi.Void Function(ffi.Int64, ffi.Uint64,
+              ffi.Pointer<wire_uint_8_list>)>>('wire_db_get');
+  late final _wire_db_get = _wire_db_getPtr
+      .asFunction<void Function(int, int, ffi.Pointer<wire_uint_8_list>)>();
 
-  void wire_put(
+  void wire_db_put(
     int port_,
-    ffi.Pointer<wire_uint_8_list> db,
+    int ptr,
     ffi.Pointer<wire_uint_8_list> key,
     ffi.Pointer<wire_uint_8_list> value,
   ) {
-    return _wire_put(
+    return _wire_db_put(
       port_,
-      db,
+      ptr,
       key,
       value,
     );
   }
 
-  late final _wire_putPtr = _lookup<
+  late final _wire_db_putPtr = _lookup<
       ffi.NativeFunction<
           ffi.Void Function(
               ffi.Int64,
+              ffi.Uint64,
               ffi.Pointer<wire_uint_8_list>,
-              ffi.Pointer<wire_uint_8_list>,
-              ffi.Pointer<wire_uint_8_list>)>>('wire_put');
-  late final _wire_put = _wire_putPtr.asFunction<
-      void Function(int, ffi.Pointer<wire_uint_8_list>,
-          ffi.Pointer<wire_uint_8_list>, ffi.Pointer<wire_uint_8_list>)>();
+              ffi.Pointer<wire_uint_8_list>)>>('wire_db_put');
+  late final _wire_db_put = _wire_db_putPtr.asFunction<
+      void Function(int, int, ffi.Pointer<wire_uint_8_list>,
+          ffi.Pointer<wire_uint_8_list>)>();
 
-  void wire_delete(
+  void wire_db_close(
     int port_,
-    ffi.Pointer<wire_uint_8_list> db,
+    int ptr,
+  ) {
+    return _wire_db_close(
+      port_,
+      ptr,
+    );
+  }
+
+  late final _wire_db_closePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Uint64)>>(
+          'wire_db_close');
+  late final _wire_db_close =
+      _wire_db_closePtr.asFunction<void Function(int, int)>();
+
+  void wire_db_get_rows(
+    int port_,
+    int ptr,
+  ) {
+    return _wire_db_get_rows(
+      port_,
+      ptr,
+    );
+  }
+
+  late final _wire_db_get_rowsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Uint64)>>(
+          'wire_db_get_rows');
+  late final _wire_db_get_rows =
+      _wire_db_get_rowsPtr.asFunction<void Function(int, int)>();
+
+  void wire_db_delete(
+    int port_,
+    int ptr,
     ffi.Pointer<wire_uint_8_list> key,
   ) {
-    return _wire_delete(
+    return _wire_db_delete(
       port_,
-      db,
+      ptr,
       key,
     );
   }
 
-  late final _wire_deletePtr = _lookup<
+  late final _wire_db_deletePtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>,
-              ffi.Pointer<wire_uint_8_list>)>>('wire_delete');
-  late final _wire_delete = _wire_deletePtr.asFunction<
-      void Function(
-          int, ffi.Pointer<wire_uint_8_list>, ffi.Pointer<wire_uint_8_list>)>();
+          ffi.Void Function(ffi.Int64, ffi.Uint64,
+              ffi.Pointer<wire_uint_8_list>)>>('wire_db_delete');
+  late final _wire_db_delete = _wire_db_deletePtr
+      .asFunction<void Function(int, int, ffi.Pointer<wire_uint_8_list>)>();
 
   ffi.Pointer<wire_uint_8_list> new_uint_8_list_0(
     int len,

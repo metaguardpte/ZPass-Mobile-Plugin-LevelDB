@@ -7,34 +7,33 @@ import 'dart:async';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 
 abstract class Flkv {
-  Future<String> open(
-      {required String path, required bool inMemory, dynamic hint});
+  Future<int> dbNew({required String path, dynamic hint});
 
-  FlutterRustBridgeTaskConstMeta get kOpenConstMeta;
+  FlutterRustBridgeTaskConstMeta get kDbNewConstMeta;
 
-  Future<bool> close({required String db, dynamic hint});
+  Future<String?> dbGet({required int ptr, required String key, dynamic hint});
 
-  FlutterRustBridgeTaskConstMeta get kCloseConstMeta;
+  FlutterRustBridgeTaskConstMeta get kDbGetConstMeta;
 
-  Future<Rows> getRows({required String db, dynamic hint});
-
-  FlutterRustBridgeTaskConstMeta get kGetRowsConstMeta;
-
-  Future<String> get({required String db, required String key, dynamic hint});
-
-  FlutterRustBridgeTaskConstMeta get kGetConstMeta;
-
-  Future<bool> put(
-      {required String db,
+  Future<bool> dbPut(
+      {required int ptr,
       required String key,
       required String value,
       dynamic hint});
 
-  FlutterRustBridgeTaskConstMeta get kPutConstMeta;
+  FlutterRustBridgeTaskConstMeta get kDbPutConstMeta;
 
-  Future<bool> delete({required String db, required String key, dynamic hint});
+  Future<bool> dbClose({required int ptr, dynamic hint});
 
-  FlutterRustBridgeTaskConstMeta get kDeleteConstMeta;
+  FlutterRustBridgeTaskConstMeta get kDbCloseConstMeta;
+
+  Future<Rows> dbGetRows({required int ptr, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kDbGetRowsConstMeta;
+
+  Future<bool> dbDelete({required int ptr, required String key, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kDbDeleteConstMeta;
 }
 
 class Row {

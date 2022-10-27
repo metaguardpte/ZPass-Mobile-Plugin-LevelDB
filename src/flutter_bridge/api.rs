@@ -1,5 +1,107 @@
 extern crate rusty_leveldb;
 
+use rusty_leveldb::{LdbIterator, Options, Status, DB};
+use std::sync::{Arc, Mutex};
+
+pub struct MyDB {
+    db: DB,
+}
+
+pub fn db_new(path: String) -> u64 {
+    initialize();
+    Box::into_raw(Box::new(MyDB {
+        db: DB::open(&path, Options::default()).unwrap(),
+    })) as u64
+}
+
+pub fn db_get(ptr: u64, key: String) -> Option<String> {
+    unsafe {
+        let my_db = ptr as *mut MyDB;
+        if my_db.is_null() {
+            return None;
+        }
+        match (*my_db).db.get(key.as_bytes()) {
+            Some(v) => String::from_utf8(v).ok(),
+            None => {
+                return None;
+            }
+        }
+    }
+}
+
+pub fn db_put(ptr: u64, key: String, value: String) -> bool {
+    unsafe {
+        let my_db = ptr as *mut MyDB;
+        if my_db.is_null() {
+            return false;
+        }
+        match (*my_db).db.put(key.as_bytes(), value.as_bytes()) {
+            Ok(_) => true,
+            Err(err) => {
+                println!("Db put err {}", err);
+                false
+            }
+        }
+    }
+}
+
+pub fn db_close(ptr: u64) -> bool {
+    unsafe {
+        let my_db = ptr as *mut MyDB;
+        if my_db.is_null() {
+            return false;
+        }
+        match (*my_db).db.close() {
+            Ok(_) => {
+                let _ = Box::from_raw(my_db);
+                true
+            }
+            Err(err) => {
+                println!("Db close err {}", err);
+                false
+            }
+        }
+    }
+}
+
+pub fn db_get_rows(ptr: u64) -> Rows {
+    unsafe {
+        let mut rows = vec![];
+        let my_db = ptr as *mut MyDB;
+        if my_db.is_null() {
+            return Rows { rows };
+        }
+
+        let mut it = (*my_db).db.new_iter().unwrap();
+        let (mut k, mut v) = (vec![], vec![]);
+        while it.advance() {
+            it.current(&mut k, &mut v);
+            let key = String::from_utf8(k.clone()).unwrap();
+            let value = String::from_utf8(v.clone()).unwrap();
+            let row = Row { key, value };
+            rows.push(row);
+        }
+
+        Rows { rows }
+    }
+}
+
+pub fn db_delete(ptr: u64, key: String) -> bool {
+    unsafe {
+        let my_db = ptr as *mut MyDB;
+        if my_db.is_null() {
+            return false;
+        }
+        match (*my_db).db.delete(key.as_bytes()) {
+            Ok(_) => true,
+            Err(err) => {
+                error!("Delete key {} failed: {}", key, err);
+                false
+            }
+        }
+    }
+}
+
 fn initialize() {
     #[cfg(target_os = "android")]
     {
@@ -36,35 +138,10 @@ fn initialize() {
     // }
 }
 
-pub fn open(path: String, in_memory: bool) -> String {
-    initialize();
-    return crate::new(&path, in_memory);
-}
-
-pub fn close(db: String) -> bool {
-    return crate::close(db);
-}
-
 pub struct Row {
     pub key: String,
     pub value: String,
 }
 pub struct Rows {
     pub rows: Vec<Row>,
-}
-
-pub fn get_rows(db: String) -> Rows {
-    crate::get_rows(db)
-}
-
-pub fn get(db: String, key: String) -> String {
-    return crate::get(db, key);
-}
-
-pub fn put(db: String, key: String, value: String) -> bool {
-    return crate::put(db, key, value);
-}
-
-pub fn delete(db: String, key: String) -> bool {
-    return crate::delete(db, key);
 }
