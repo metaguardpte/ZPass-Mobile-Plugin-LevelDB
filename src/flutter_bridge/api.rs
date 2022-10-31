@@ -1,7 +1,6 @@
 extern crate rusty_leveldb;
 
-use rusty_leveldb::{LdbIterator, Options, Status, DB};
-use std::sync::{Arc, Mutex};
+use rusty_leveldb::{LdbIterator, Options, DB};
 
 pub struct MyDB {
     db: DB,
@@ -96,6 +95,22 @@ pub fn db_delete(ptr: u64, key: String) -> bool {
             Ok(_) => true,
             Err(err) => {
                 error!("Delete key {} failed: {}", key, err);
+                false
+            }
+        }
+    }
+}
+
+pub fn db_flush(ptr: u64) -> bool {
+    unsafe {
+        let my_db = ptr as *mut MyDB;
+        if my_db.is_null() {
+            return false;
+        }
+        match (*my_db).db.flush() {
+            Ok(_) => true,
+            Err(err) => {
+                error!("Flush db failed: {}", err);
                 false
             }
         }

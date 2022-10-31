@@ -36,6 +36,11 @@ pub extern "C" fn wire_db_delete(port_: i64, ptr: u64, key: *mut wire_uint_8_lis
     wire_db_delete_impl(port_, ptr, key)
 }
 
+#[no_mangle]
+pub extern "C" fn wire_db_flush(port_: i64, ptr: u64) {
+    wire_db_flush_impl(port_, ptr)
+}
+
 // Section: allocate functions
 
 #[no_mangle]

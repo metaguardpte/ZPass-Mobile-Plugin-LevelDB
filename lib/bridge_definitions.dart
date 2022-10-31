@@ -34,6 +34,10 @@ abstract class Flkv {
   Future<bool> dbDelete({required int ptr, required String key, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kDbDeleteConstMeta;
+
+  Future<bool> dbFlush({required int ptr, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kDbFlushConstMeta;
 }
 
 class Row {

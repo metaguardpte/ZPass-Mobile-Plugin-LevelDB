@@ -127,6 +127,22 @@ class FlkvImpl implements Flkv {
         argNames: ["ptr", "key"],
       );
 
+  Future<bool> dbFlush({required int ptr, dynamic hint}) =>
+      _platform.executeNormal(FlutterRustBridgeTask(
+        callFfi: (port_) =>
+            _platform.inner.wire_db_flush(port_, _platform.api2wire_u64(ptr)),
+        parseSuccessData: _wire2api_bool,
+        constMeta: kDbFlushConstMeta,
+        argValues: [ptr],
+        hint: hint,
+      ));
+
+  FlutterRustBridgeTaskConstMeta get kDbFlushConstMeta =>
+      const FlutterRustBridgeTaskConstMeta(
+        debugName: "db_flush",
+        argNames: ["ptr"],
+      );
+
 // Section: wire2api
 
   String _wire2api_String(dynamic raw) {
@@ -354,6 +370,22 @@ class FlkvWire implements FlutterRustBridgeWireBase {
               ffi.Pointer<wire_uint_8_list>)>>('wire_db_delete');
   late final _wire_db_delete = _wire_db_deletePtr
       .asFunction<void Function(int, int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_db_flush(
+    int port_,
+    int ptr,
+  ) {
+    return _wire_db_flush(
+      port_,
+      ptr,
+    );
+  }
+
+  late final _wire_db_flushPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Uint64)>>(
+          'wire_db_flush');
+  late final _wire_db_flush =
+      _wire_db_flushPtr.asFunction<void Function(int, int)>();
 
   ffi.Pointer<wire_uint_8_list> new_uint_8_list_0(
     int len,

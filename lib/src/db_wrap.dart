@@ -64,6 +64,11 @@ class LevelDB {
     _dbPtr = await api.dbNew(path: _dbPath);
     return _dbPtr;
   }
+
+  Future<bool> flush() async {
+    print("flush db $_dbPath");
+    return api.dbFlush(ptr: _dbPtr);
+  }
 }
 
 class Record {

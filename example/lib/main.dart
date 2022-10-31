@@ -40,6 +40,12 @@ class _MyAppState extends State<MyApp> {
             await levelDB.open();
             print("open db ${levelDB.getPath()} completed");
 
+            print("list after open");
+            var newRows = await levelDB.list();
+            newRows.forEach((element) {
+              print("row -> ${element.key} - ${element.value}");
+            });
+
             var putResult = await levelDB.put("key", "test1111");
             print("put result: ${putResult}");
 
@@ -47,15 +53,21 @@ class _MyAppState extends State<MyApp> {
 
             var value = await levelDB.get("key");
             print("value: $value");
+
+            print("list after insert");
             var rows = await levelDB.list();
             rows.forEach((element) {
               print("row -> ${element.key} - ${element.value}");
             });
 
             await levelDB.delete("key");
+            await levelDB.delete("key23232");
             print("delete key");
+            await levelDB.flush();
+            print("flush db");
 
-            var newRows = await levelDB.list();
+            print("list after delete");
+            newRows = await levelDB.list();
             newRows.forEach((element) {
               print("row -> ${element.key} - ${element.value}");
             });

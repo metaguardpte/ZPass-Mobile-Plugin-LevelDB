@@ -114,6 +114,19 @@ fn wire_db_delete_impl(
         },
     )
 }
+fn wire_db_flush_impl(port_: MessagePort, ptr: impl Wire2Api<u64> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "db_flush",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_ptr = ptr.wire2api();
+            move |task_callback| Ok(db_flush(api_ptr))
+        },
+    )
+}
 // Section: wrapper structs
 
 // Section: static checks
